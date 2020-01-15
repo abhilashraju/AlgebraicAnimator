@@ -78,34 +78,7 @@ public:
         mAnimation=nullptr;
         return *this;
     }
-//    QAnimationGenericWrapper displayTree(){
-//        get()->displayAnimationTree();
-//        return *this;
-//    }
-//    template<typename... Exprs>
-//    QAnimationGenericWrapper stop_when(Exprs&&... exprs)
-//    {
-//        T* obj=get();
-//        get()->when(std::forward<Exprs>(exprs)...).then([=](typename Exprs::RESULTTYPE... results){
-//            if(Ui::checkall(results...)){
-//                obj->stop();
-//            }
-//        });
-//        return *this;
-//    }
 
-//    template<typename... Exprs>
-//    QAnimationGenericWrapper cancel_when(Exprs&&... exprs)
-//    {
-//        T* obj=get();
-//        get()->when(std::forward<Exprs>(exprs)...).then([=](typename Exprs::RESULTTYPE... results){
-//            if(Ui::checkall(results...)){
-//                obj->pause();
-//                obj->deleteLater();
-//            }
-//        });
-//        return *this;
-//    }
 };
 using QAnimationWrapper= QAnimationGenericWrapper<QAbstractAnimation>;
 using QAnimationGroupWrapper= QAnimationGenericWrapper<QAnimationGroup>;
@@ -400,8 +373,8 @@ inline void reverseAnimation(QAbstractAnimation* anim)
             children.emplace_front(group->takeAnimation(0));
         }
         foreach (QAbstractAnimation* _anim, children) {
-            group->addAnimation(_anim);
             reverseAnimation(_anim);
+            group->addAnimation(_anim);
         }
     }
     QPropertyAnimation* animation = dynamic_cast<QPropertyAnimation*>(anim);
@@ -433,7 +406,9 @@ inline animator operator~(const animator& anim){
     };
 }
 
-
+inline groupanimator getNullAnimator(){
+    return getPauseAnimator(0) & getPauseAnimator(0);
+}
 
 }
 #endif // QPATTERNANIMATORS_H

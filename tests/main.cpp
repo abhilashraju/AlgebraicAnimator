@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+
 #include "qpatternanimators.h"
 #include "qpainter.h"
 #include "qapplication.h"
@@ -13,7 +13,7 @@
 #include "qabstracttransition.h"
 #include "qtimer.h"
 #include "qsignaltransition.h"
-#include "qpatternanimators.h"
+
 class Pixmap : public QObject, public QGraphicsPixmapItem
 {
     Q_OBJECT
@@ -205,17 +205,36 @@ int main(int argc, char **argv)
 
     trans = rootState->addTransition(centeredButton, &Button::pressed, centeredState);
     trans->addAnimation(group);
-    auto wiggle = [&](){
+    auto stepside = [&](){
 
-        auto anim=Animation::getObjectAnimator(items.at(0),"pos",items.at(0)->pos(),items.at(0)->pos()+QPointF(50,0),100) &
-                Animation::getObjectAnimator(items.at(1),"pos",items.at(1)->pos(),items.at(1)->pos()+QPointF(50,0),100);
-        anim =std::accumulate(std::begin(items)+2,std::end(items),anim,[](auto a, auto item){
-            return a = a | Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(50,0),100);
+        auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[i=0](auto a, auto item)mutable{
+            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(200,0),400+ 25 * i++,
+                                                        QEasingCurve::InOutBack);
         });
         return anim | ~anim;
     };
+    auto dance = [&](){
+         int quarter = items.count()/4;
+        auto anim1 =std::accumulate(std::begin(items),std::begin(items)+quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
+            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(200,0),400+ 25 * i++,
+                                                        QEasingCurve::InOutBack);
+        });
+        auto anim2 =std::accumulate(std::begin(items)+quarter,std::begin(items)+2*quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
+            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(-200,0),400+ 25 * i++,
+                                                        QEasingCurve::InOutBack);
+        });
+        auto anim3 =std::accumulate(std::begin(items)+2*quarter,std::begin(items)+3*quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
+            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(0,200),400+ 25 * i++,
+                                                        QEasingCurve::InOutBack);
+        });
+        auto anim4 =std::accumulate(std::begin(items)+3*quarter,std::end(items),getNullAnimator(),[i=0](auto a, auto item)mutable{
+            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(0,-200),400+ 25 * i++,
+                                                        QEasingCurve::InOutBack);
+        });
+        return (anim1 & anim2 & anim3 & anim4) |  ~(anim1 & anim2 & anim3 & anim4);
+    };
     QObject::connect(animateButton,&Button::pressed,[=](){
-          wiggle()().start();
+          ((~stepside() | dance() | ~dance() | stepside()) * 3) ().start() ;
     });
 
     QTimer timer;

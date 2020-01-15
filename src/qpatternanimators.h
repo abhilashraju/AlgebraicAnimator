@@ -8,9 +8,20 @@
 #include "qpauseanimation.h"
 #include <memory>
 #include <deque>
+#include <iostream>
 namespace Animation{
 //#define S__PRETTY_FUNCTION__ std::string(__PRETTY_FUNCTION__).left(50).charString()
 #define S__PRETTY_FUNCTION__ __PRETTY_FUNCTION__
+struct dummyout{
+    template<typename T>
+    friend dummyout& operator<<(dummyout& out,T v){return out;}
+};
+
+
+auto debugout = []()->dummyout&{
+    static dummyout dout;
+    return dout;
+};
 struct patternFunctionlogger
 {
     static std::string& getIndentationString()
@@ -20,12 +31,12 @@ struct patternFunctionlogger
     }
     const char* log;
     patternFunctionlogger(const char* a):log(a){
-//        getIndentationString().append("  ");
-//        SDEBUG_AT_LEVEL(0)<<getIndentationString()<<"Pat Fun "<<log<<"Start";
+        getIndentationString().append("  ");
+        debugout()<<getIndentationString()<<"Pat Fun "<<log<<"Start\n";
     }
     ~patternFunctionlogger(){
-//        SDEBUG_AT_LEVEL(0)<<getIndentationString()<<"Pat Fun "<<log<<"End";
-//        getIndentationString().remove(getIndentationString().length()-2);
+        debugout()<<getIndentationString()<<"Pat Fun "<<log<<"End\n";
+        getIndentationString().erase(getIndentationString().length()-2);
     }
 };
 
@@ -33,12 +44,12 @@ struct patternobjectlogger
 {
     const char* log;
     patternobjectlogger(const char* a):log(a){
-//        patternFunctionlogger::getIndentationString().append("  ");
-//        SDEBUG_AT_LEVEL(0)<<patternFunctionlogger::getIndentationString()<<"Pat Obj"<<log<<"Start";
+        patternFunctionlogger::getIndentationString().append("  ");
+        debugout()<<patternFunctionlogger::getIndentationString()<<"Pat Obj"<<log<<"Start\n";
     }
     ~patternobjectlogger(){
-//        SDEBUG_AT_LEVEL(0)<<patternFunctionlogger::getIndentationString()<<"Pat Obj"<<log<<"End";
-//        patternFunctionlogger::getIndentationString().remove(patternFunctionlogger::getIndentationString().length()-2);
+        debugout()<<patternFunctionlogger::getIndentationString()<<"Pat Obj"<<log<<"End\n";
+        patternFunctionlogger::getIndentationString().erase(patternFunctionlogger::getIndentationString().length()-2);
     }
 };
 

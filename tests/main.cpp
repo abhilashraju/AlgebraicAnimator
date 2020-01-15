@@ -205,13 +205,14 @@ int main(int argc, char **argv)
 
     trans = rootState->addTransition(centeredButton, &Button::pressed, centeredState);
     trans->addAnimation(group);
-    auto stepside = [&](){
+    auto stepside = [&](bool right=true){
 
-        auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[i=0](auto a, auto item)mutable{
-            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(200,0),400+ 25 * i++,
+        auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[i=0,right](auto a, auto item)mutable{
+            auto slide = QPointF(right?200:-200,0);
+            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+slide,400+ 25 * i++,
                                                         QEasingCurve::InOutBack);
         });
-        return anim | ~anim;
+        return  anim;
     };
     auto dance = [&](){
          int quarter = items.count()/4;
@@ -231,10 +232,12 @@ int main(int argc, char **argv)
             return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(0,-200),400+ 25 * i++,
                                                         QEasingCurve::InOutBack);
         });
-        return (anim1 & anim2 & anim3 & anim4) |  ~(anim1 & anim2 & anim3 & anim4);
+        return (anim1 & anim2 & anim3 & anim4) ;
     };
     QObject::connect(animateButton,&Button::pressed,[=](){
-          ((~stepside() | dance() | ~dance() | stepside()) * 3) ().start() ;
+
+          ((stepside(true) | ~stepside(true)| dance() | ~dance() | stepside(false) | ~stepside(false)| dance() | ~dance())*3) ().start() ;
+
     });
 
     QTimer timer;

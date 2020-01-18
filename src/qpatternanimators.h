@@ -102,7 +102,17 @@ enum AGroupType
     Sequential
 };
 
-
+inline animator getObjectAnimator(const QObject* w, const std::string& prop,int dur,QEasingCurve curve = QEasingCurve::Linear)
+{
+    patternFunctionlogger a(S__PRETTY_FUNCTION__);
+    return [=]()->QAnimationWrapper {
+       patternobjectlogger a(S__PRETTY_FUNCTION__);
+       QPropertyAnimation* anim = new QPropertyAnimation(const_cast<QObject*>(w),prop.data());
+       anim->setDuration(dur);
+       anim->setEasingCurve(curve);
+       return anim;
+    };
+}
 
 inline animator getObjectAnimator(const QObject* w, const std::string& prop, const QVariant& start,
                                   const QVariant& end, int dur,QEasingCurve curve = QEasingCurve::Linear)

@@ -184,13 +184,13 @@ int main(int argc, char **argv)
     states.setInitialState(rootState);
     rootState->setInitialState(centeredState);
 
-    QParallelAnimationGroup *group = new QParallelAnimationGroup;
-    for (int i = 0; i < items.count(); ++i) {
-        QPropertyAnimation *anim = new QPropertyAnimation(items[i], "pos");
-        anim->setDuration(750 + i * 25);
-        anim->setEasingCurve(QEasingCurve::InOutBack);
-        group->addAnimation(anim);
-    }
+
+    auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[=,i=0](auto a, auto item)mutable{
+
+        return a = a & getObjectAnimator(item,"pos",750 + 25 * i++,
+                                                    QEasingCurve::InOutBack);
+    });
+    auto group = anim().get();
     QAbstractTransition *trans = rootState->addTransition(ellipseButton, &Button::pressed, ellipseState);
     trans->addAnimation(group);
 
@@ -205,38 +205,40 @@ int main(int argc, char **argv)
 
     trans = rootState->addTransition(centeredButton, &Button::pressed, centeredState);
     trans->addAnimation(group);
-    auto stepside = [&](bool right=true){
 
-        auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[i=0,right](auto a, auto item)mutable{
-            auto slide = QPointF(right?200:-200,0);
-            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+slide,400+ 25 * i++,
-                                                        QEasingCurve::InOutBack);
-        });
-        return  anim;
-    };
-    auto dance = [&](){
-         int quarter = items.count()/4;
-        auto anim1 =std::accumulate(std::begin(items),std::begin(items)+quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
-            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(200,0),400+ 25 * i++,
-                                                        QEasingCurve::InOutBack);
-        });
-        auto anim2 =std::accumulate(std::begin(items)+quarter,std::begin(items)+2*quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
-            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(-200,0),400+ 25 * i++,
-                                                        QEasingCurve::InOutBack);
-        });
-        auto anim3 =std::accumulate(std::begin(items)+2*quarter,std::begin(items)+3*quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
-            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(0,200),400+ 25 * i++,
-                                                        QEasingCurve::InOutBack);
-        });
-        auto anim4 =std::accumulate(std::begin(items)+3*quarter,std::end(items),getNullAnimator(),[i=0](auto a, auto item)mutable{
-            return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(0,-200),400+ 25 * i++,
-                                                        QEasingCurve::InOutBack);
-        });
-        return (anim1 & anim2 & anim3 & anim4) ;
-    };
     QObject::connect(animateButton,&Button::pressed,[=](){
-
-          ((stepside(true) | ~stepside(true)| dance() | ~dance() | stepside(false) | ~stepside(false)| dance() | ~dance())*3) ().start() ;
+        auto stepside = [&](bool right){
+            auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[i=0,right](auto a, auto item)mutable{
+                auto slide = QPointF(right ? 200:-200,0);
+                return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+slide,400+ 25 * i++,
+                                                            QEasingCurve::InOutBack);
+            });
+            return  anim;
+        };
+        auto dance = [&](){
+             int quarter = items.count()/4;
+            auto anim1 =std::accumulate(std::begin(items),std::begin(items)+quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
+                return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(200,0),400+ 25 * i++,
+                                                            QEasingCurve::InOutBack);
+            });
+            auto anim2 =std::accumulate(std::begin(items)+quarter,std::begin(items)+2*quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
+                return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(-200,0),400+ 25 * i++,
+                                                            QEasingCurve::InOutBack);
+            });
+            auto anim3 =std::accumulate(std::begin(items)+2*quarter,std::begin(items)+3*quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
+                return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(0,200),400+ 25 * i++,
+                                                            QEasingCurve::InOutBack);
+            });
+            auto anim4 =std::accumulate(std::begin(items)+3*quarter,std::end(items),getNullAnimator(),[i=0](auto a, auto item)mutable{
+                return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(0,-200),400+ 25 * i++,
+                                                            QEasingCurve::InOutBack);
+            });
+            return (anim1 & anim2 & anim3 & anim4) ;
+        };
+        auto stepleft = stepside(false);
+        auto stepright = stepside(true);
+        auto jump = dance();
+        ((stepright | ~stepright| jump | ~jump | stepleft | ~stepleft | jump | ~jump)*3) ().start() ;
 
     });
 

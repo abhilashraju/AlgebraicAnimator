@@ -187,8 +187,8 @@ int main(int argc, char **argv)
 
     auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[=,i=0](auto a, auto item)mutable{
 
-        return a = a & getObjectAnimator(item,"pos",750 + 25 * i++,
-                                                    QEasingCurve::InOutBack);
+        return a = a & (getObjectAnimator(item,"pos",750 + 25 * i++,
+                                         QEasingCurve::InOutBack) >> [=](){std::cout<<"pos = "<<750 + 25 * i;});
     });
     auto group = anim().get();
     QAbstractTransition *trans = rootState->addTransition(ellipseButton, &Button::pressed, ellipseState);
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
             return  anim;
         };
         auto dance = [&](){
-             int quarter = items.count()/4;
+            int quarter = items.count()/4;
             auto anim1 =std::accumulate(std::begin(items),std::begin(items)+quarter,getNullAnimator(),[i=0](auto a, auto item)mutable{
                 return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(200,0),400+ 25 * i++,
                                                             QEasingCurve::InOutBack);

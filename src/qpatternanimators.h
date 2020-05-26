@@ -404,6 +404,7 @@ inline void reverseAnimation(QAbstractAnimation* anim)
         QVariant endValue = animation->endValue();
         animation->setStartValue(endValue);
         animation->setEndValue(startValue);
+//        animation->setDirection(QAbstractAnimation::Backward) ;
     }
 }
 
@@ -426,7 +427,28 @@ inline animator operator~(const animator& anim){
        return animation;
     };
 }
-
+template <typename CALLBACK>
+inline animator operator >> (const animator& anim,CALLBACK callback)
+{
+    patternFunctionlogger a(S__PRETTY_FUNCTION__);
+    return [=,callback=std::move(callback)]()->QAnimationWrapper {
+       patternobjectlogger log(S__PRETTY_FUNCTION__);
+       QAbstractAnimation* animation = anim().get();
+       animation->connect(animation,&QAbstractAnimation::finished,std::move(callback));
+       return animation;
+    };
+}
+template <typename CALLBACK>
+inline groupanimator operator >> (const groupanimator& anim,CALLBACK callback)
+{
+    patternFunctionlogger a(S__PRETTY_FUNCTION__);
+    return [=,callback=std::move(callback)]()->QAnimationGroupWrapper {
+       patternobjectlogger log(S__PRETTY_FUNCTION__);
+       QAbstractAnimation* animation = anim().get();
+       animation->connect(animation,&QAbstractAnimation::finished,std::move(callback));
+       return animation;
+    };
+}
 inline groupanimator getNullAnimator(){
     return getPauseAnimator(0) & getPauseAnimator(0);
 }

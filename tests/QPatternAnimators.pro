@@ -2,7 +2,7 @@ QT       += core gui
 
  QT += widgets
 
-CONFIG += c++14
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -17,7 +17,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 INCLUDEPATH += ../src/
-SOURCES += main.cpp
+SOURCES +=    main.cpp
+#SOURCES +=    main2.cpp
+
 HEADERS += qpatternanimators.h
 
 # Default rules for deployment.

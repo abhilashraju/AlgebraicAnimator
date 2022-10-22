@@ -6,13 +6,10 @@
 #include "qgraphicswidget.h"
 #include "qstyle.h"
 #include "qgraphicsview.h"
-#include "qstate.h"
 #include "QRandomGenerator"
 #include "qmath.h"
-#include "qstatemachine.h"
-#include "qabstracttransition.h"
 #include "qtimer.h"
-#include "qsignaltransition.h"
+
 
 class Pixmap : public QObject, public QGraphicsPixmapItem
 {
@@ -123,18 +120,7 @@ int main(int argc, char **argv)
 
     // Buttons
     QGraphicsItem *buttonParent = new QGraphicsRectItem;
-    Button *ellipseButton = new Button(QPixmap(":/images/ellipse.png"), buttonParent);
-    Button *figure8Button = new Button(QPixmap(":/images/figure8.png"), buttonParent);
-    Button *randomButton = new Button(QPixmap(":/images/random.png"), buttonParent);
-    Button *tiledButton = new Button(QPixmap(":/images/tile.png"), buttonParent);
-    Button *centeredButton = new Button(QPixmap(":/images/centered.png"), buttonParent);
     Button *animateButton = new Button(QPixmap(), buttonParent);
-
-    ellipseButton->setPos(-100, -100);
-    figure8Button->setPos(100, -100);
-    randomButton->setPos(0, 0);
-    tiledButton->setPos(-100, 100);
-    centeredButton->setPos(100, 100);
     animateButton->setPos(200, 0);
 
     scene.addItem(buttonParent);
@@ -143,70 +129,18 @@ int main(int argc, char **argv)
     buttonParent->setZValue(65);
 
     // States
-    QState *rootState = new QState;
-    QState *ellipseState = new QState(rootState);
-    QState *figure8State = new QState(rootState);
-    QState *randomState = new QState(rootState);
-    QState *tiledState = new QState(rootState);
-    QState *centeredState = new QState(rootState);
+
 
     // Values
     for (int i = 0; i < items.count(); ++i) {
         Pixmap *item = items.at(i);
         // Ellipse
-        ellipseState->assignProperty(item, "pos",
-                                         QPointF(qCos((i / 63.0) * 6.28) * 250,
-                                                 qSin((i / 63.0) * 6.28) * 250));
+        item->setPos(QPointF());
 
-        // Figure 8
-        figure8State->assignProperty(item, "pos",
-                                         QPointF(qSin((i / 63.0) * 6.28) * 250,
-                                                 qSin(((i * 2)/63.0) * 6.28) * 250));
-
-        // Random
-        randomState->assignProperty(item, "pos",
-                                        QPointF(-250 + QRandomGenerator::global()->bounded(500),
-                                                -250 + QRandomGenerator::global()->bounded(500)));
-
-        // Tiled
-        tiledState->assignProperty(item, "pos",
-                                       QPointF(((i % 8) - 4) * kineticPix.width() + kineticPix.width() / 2,
-                                               ((i / 8) - 4) * kineticPix.height() + kineticPix.height() / 2));
-
-        // Centered
-        centeredState->assignProperty(item, "pos", QPointF());
     }
 
 
-
-    QStateMachine states;
-    states.addState(rootState);
-    states.setInitialState(rootState);
-    rootState->setInitialState(centeredState);
-
-
-    auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[=,i=0](auto a, auto item)mutable{
-
-        return a = a & (getObjectAnimator(item,"pos",750 + 25 * i++,
-                                         QEasingCurve::InOutBack) >> [=](){std::cout<<"pos = "<<750 + 25 * i;});
-    });
-    auto group = anim().get();
-    QAbstractTransition *trans = rootState->addTransition(ellipseButton, &Button::pressed, ellipseState);
-    trans->addAnimation(group);
-
-    trans = rootState->addTransition(figure8Button, &Button::pressed, figure8State);
-    trans->addAnimation(group);
-
-    trans = rootState->addTransition(randomButton, &Button::pressed, randomState);
-    trans->addAnimation(group);
-
-    trans = rootState->addTransition(tiledButton, &Button::pressed, tiledState);
-    trans->addAnimation(group);
-
-    trans = rootState->addTransition(centeredButton, &Button::pressed, centeredState);
-    trans->addAnimation(group);
-
-    QObject::connect(animateButton,&Button::pressed,[=](){
+    QObject::connect(animateButton,&Button::pressed,[=,animtype=0]()mutable{
         auto stepside = [&](bool right){
             auto anim =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[i=0,right](auto a, auto item)mutable{
                 auto slide = QPointF(right ? 200:-200,0);
@@ -235,29 +169,49 @@ int main(int argc, char **argv)
             });
             return (anim1 & anim2 & anim3 & anim4) ;
         };
+        auto make_round =[&](){
+            auto stepangle = 2*3.14 / items.count();
+            auto radius=150;
+            auto anim1 =std::accumulate(std::begin(items),std::end(items),getNullAnimator(),[=,i=0](auto a, auto item)mutable{
+                return a = a & Animation::getObjectAnimator(item,"pos",item->pos(),item->pos()+QPointF(radius*std::cos(stepangle*i),radius*std::sin(stepangle*i)),400+ 25 * i++,
+                                                            QEasingCurve::InOutBack);
+            });
+
+
+            return anim1 ;
+        };
         auto stepleft = stepside(false);
         auto stepright = stepside(true);
         auto jump = dance();
-        ((stepright | ~stepright| jump | ~jump | stepleft | ~stepleft | jump | ~jump)*3) ().start() ;
+        auto round=make_round();
+        switch (animtype++ % 3) {
+        case 0:
+             ((stepright | ~stepright| jump | ~jump | stepleft | ~stepleft | jump | ~jump)*3) ().start() ;
+            break;
+        case 1:
+            (round | ~round )().start();
+            break;
+        case 2:
+            ((stepright | round | ~round | ~stepright|  stepleft | round | ~round |~stepleft | jump | ~jump)*3) ().start() ;
+            break;
+        default:
+            break;
+        }
+
+
 
     });
 
-    QTimer timer;
-    timer.start(125);
-    timer.setSingleShot(true);
-    trans = rootState->addTransition(&timer, &QTimer::timeout, ellipseState);
-    trans->addAnimation(group);
 
-    states.start();
 
-        // Ui
-        View *view = new View(&scene);
-        view->setWindowTitle(QT_TRANSLATE_NOOP(QGraphicsView, "Animated Tiles"));
-        view->setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
-        view->setBackgroundBrush(bgPix);
-        view->setCacheMode(QGraphicsView::CacheBackground);
-        view->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-        view->show();
+    // Ui
+    View *view = new View(&scene);
+    view->setWindowTitle(QT_TRANSLATE_NOOP(QGraphicsView, "Animated Tiles"));
+    view->setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
+    view->setBackgroundBrush(bgPix);
+    view->setCacheMode(QGraphicsView::CacheBackground);
+    view->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    view->show();
     return app.exec();
 }
 

@@ -1,6 +1,6 @@
 #ifndef QPATTERNANIMATORS_H
 #define QPATTERNANIMATORS_H
-#include "qtypetraits.h"
+
 #include "qobject.h"
 #include "qparallelanimationgroup.h"
 #include "qpropertyanimation.h"
@@ -446,7 +446,7 @@ inline groupanimator operator >> (const groupanimator& anim,CALLBACK callback)
        patternobjectlogger log(S__PRETTY_FUNCTION__);
        QAbstractAnimation* animation = anim().get();
        animation->connect(animation,&QAbstractAnimation::finished,std::move(callback));
-       return animation;
+       return QAnimationGroupWrapper(animation);
     };
 }
 inline groupanimator getNullAnimator(){
